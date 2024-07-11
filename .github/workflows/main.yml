@@ -1,0 +1,29 @@
+name: Rename Image File
+
+on:
+  push:
+    paths:
+      - 'img/image.png'
+
+jobs:
+  rename-file:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Generate random filename
+        id: random-filename
+        run: echo "RANDOM_FILENAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1).png" >> $GITHUB_ENV
+
+      - name: Rename image file
+        run: mv img/image.png img/$RANDOM_FILENAME
+
+      - name: Commit changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add images/
+          git commit -m "Renamed image.png to $RANDOM_FILENAME"
+          git push
