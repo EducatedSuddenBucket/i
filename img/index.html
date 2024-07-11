@@ -1,1 +1,58 @@
- </h1>HI</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image-Servery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.0.0/github-markdown-dark.min.css">
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+    <div class="container">
+        <h1>Image-Server</h1>
+        <div id="image-list"></div>
+    </div>
+
+    <script>
+        const repoOwner = 'EducatedSuddenBucket';
+        const repoName = 'i2';
+        const directory = 'img';
+        const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${directory}`;
+
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                const imageList = document.getElementById('image-list');
+                data.forEach(file => {
+                    if (file.name.endsWith('.png')) {
+                        const img = document.createElement('img');
+                        img.src = file.download_url;
+                        img.alt = file.name;
+                        const link = document.createElement('a');
+                        link.href = file.html_url;
+                        link.textContent = file.name;
+                        imageList.appendChild(link);
+                        imageList.appendChild(document.createElement('br'));
+                        imageList.appendChild(img);
+                        imageList.appendChild(document.createElement('br'));
+                    }
+                });
+            })
+            .catch(error => console.error('Error fetching files:', error));
+    </script>
+</body>
+</html>
