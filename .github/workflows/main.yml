@@ -16,10 +16,19 @@ jobs:
 
       - name: Generate random filename
         id: random-filename
-        run: echo "RANDOM_FILENAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1).png" >> $GITHUB_ENV
+        run: |
+          RANDOM_FILENAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1).png
+          echo "RANDOM_FILENAME=${RANDOM_FILENAME}" >> $GITHUB_ENV
+          echo "Generated random filename: ${RANDOM_FILENAME}"
+
+      - name: List files in img directory before rename
+        run: ls -la img
 
       - name: Rename image file
         run: mv img/image.png img/$RANDOM_FILENAME
+
+      - name: List files in img directory after rename
+        run: ls -la img
 
       - name: Commit changes
         run: |
