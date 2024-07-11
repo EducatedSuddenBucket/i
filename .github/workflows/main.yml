@@ -6,6 +6,9 @@ on:
       - '**/*'
   workflow_dispatch:
 
+permissions:
+  contents: write  # Grant write permission to GITHUB_TOKEN
+
 jobs:
   rename-image:
     runs-on: ubuntu-latest
@@ -18,16 +21,16 @@ jobs:
       id: random-string
       run: |
         response=$(curl -s "https://www.random.org/strings/?num=1&len=5&digits=on&loweralpha=on&unique=on&format=plain&rnd=new")
-        echo "::set-output name=random-string::${response}"
+        echo "RANDOM_STRING=${response}" >> $GITHUB_ENV
 
     - name: Rename image
       run: |
-        mv img/image.png img/${{ steps.random-string.outputs.random-string }}.png
+        mv img/image.png img/${{ env.RANDOM_STRING }}.png
 
     - name: Commit changes
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add img/${{ steps.random-string.outputs.random-string }}.png
-        git commit -m "Rename image to ${{ steps.random-string.outputs.random-string }}.png"
+        git add img/${{ env.RANDOM_STRING }}.png
+        git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png"
         git push
