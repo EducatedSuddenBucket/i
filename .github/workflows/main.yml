@@ -26,7 +26,6 @@ jobs:
     - name: Rename image
       run: |
         mv img/image.png img/${{ env.RANDOM_STRING }}.png
-        rm img/image.png
 
     - name: Commit changes
       run: |
