@@ -34,3 +34,9 @@ jobs:
         git add img/${{ env.RANDOM_STRING }}.png
         git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png"
         git push
+
+    - name: Send Discord webhook
+      uses: discord-actions/discord-webhook-action@v1
+      with:
+        webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        content: "Renamed image: [i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png](https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png)"
