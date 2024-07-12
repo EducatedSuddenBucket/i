@@ -37,6 +37,15 @@ jobs:
 
     - name: Send Discord webhook
       run: |
+        IMAGE_URL="https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
+        PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
+          "embeds": [{
+            "title": "Renamed Image",
+            "description": $url,
+            "color": $color,
+            "url": $url
+          }]
+        }')
         curl -H "Content-Type: application/json" \
-             -d "{\"content\": \"Renamed image: [https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png](https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png)\"}" \
+             -d "$PAYLOAD" \
              ${{ secrets.DISCORD_WEBHOOK_URL }}
