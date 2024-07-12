@@ -36,7 +36,7 @@ jobs:
         git push
 
     - name: Send Discord webhook
-      uses: discord-actions/discord-webhook-action@v1
-      with:
-        webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        content: "Renamed image: [i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png](https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png)"
+      run: |
+        curl -H "Content-Type: application/json" \
+             -d "{\"content\": \"Renamed image: [https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png](https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png)\"}" \
+             ${{ secrets.DISCORD_WEBHOOK_URL }}
