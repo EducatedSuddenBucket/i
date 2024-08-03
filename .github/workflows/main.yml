@@ -1,9 +1,9 @@
-name: Rename Image
+name: Rename and Deploy Image
 
 on:
   push:
     paths:
-      - '**/*'
+      - 'img/**'
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        ref: main
 
     - name: Generate random 5-letter string
       id: random-string
@@ -35,9 +37,52 @@ jobs:
         git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png"
         git push
 
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: gh-pages
+        path: gh-pages
+
+    - name: Copy renamed image to gh-pages/raw
+      run: |
+        cp img/${{ env.RANDOM_STRING }}.png gh-pages/raw/${{ env.RANDOM_STRING }}.png
+
+    - name: Generate HTML file
+      run: |
+        IMAGE_URL="https://i4.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
+        FILE_SIZE=$(du -k "img/${{ env.RANDOM_STRING }}.png" | cut -f1)
+        HTML_CONTENT="<head>
+            <meta charset=\"utf-8\">
+            <title>${{ env.RANDOM_STRING }}.png</title>
+            <meta name=\"viewport\" content=\"minimum-scale=1, initial-scale=1, width=device-width\">
+            <meta property=\"og:title\" content=\"EducatedSuddenBucket\">
+            <meta property=\"og:description\" content=\"I just used ${FILE_SIZE} KB in my PC to show you this.(jk)\">
+            <meta property=\"og:site_name\" content=\"EducatedSuddenBucket\">
+            <meta property=\"theme-color\" content=\"#2068f5\">
+            <meta property=\"og:type\" content=\"image\">
+            <meta property=\"og:image\" itemprop=\"image\" content=\"${IMAGE_URL}\">
+            <meta property=\"og:url\" content=\"${IMAGE_URL}\">
+            <style>
+              body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+              img { max-width: 100%; height: auto; }
+            </style>
+        </head>
+        <body>
+            <img src=\"${IMAGE_URL}\" alt=\"${{ env.RANDOM_STRING }}\">
+        </body>"
+        echo "$HTML_CONTENT" > gh-pages/${{ env.RANDOM_STRING }}.png.html
+
+    - name: Commit and push to gh-pages
+      run: |
+        cd gh-pages
+        git add raw/${{ env.RANDOM_STRING }}.png
+        git add ${{ env.RANDOM_STRING }}.png.html
+        git commit -m "Add renamed image and HTML file for ${{ env.RANDOM_STRING }}.png"
+        git push
+
     - name: Send Discord webhook
       run: |
-        IMAGE_URL="https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
+        IMAGE_URL="https://i2.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
         PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
           "embeds": [{
             "title": "Renamed Image",
