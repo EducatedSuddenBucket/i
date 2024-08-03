@@ -49,7 +49,7 @@ jobs:
 
     - name: Generate HTML file
       run: |
-        IMAGE_URL="https://i4.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
+        IMAGE_URL="https://i2.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
         FILE_SIZE=$(du -k "img/${{ env.RANDOM_STRING }}.png" | cut -f1)
         HTML_CONTENT="<head>
             <meta charset=\"utf-8\">
