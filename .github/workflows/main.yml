@@ -49,7 +49,7 @@ jobs:
 
     - name: Generate HTML file
       run: |
-        IMAGE_URL="https://i2.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
+        IMAGE_URL="https://i.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
         FILE_SIZE=$(du -k "img/${{ env.RANDOM_STRING }}.png" | cut -f1)
         HTML_CONTENT="<head>
             <meta charset=\"utf-8\">
@@ -85,7 +85,7 @@ jobs:
 
     - name: Send Discord webhook
       run: |
-        IMAGE_URL="https://i2.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
+        IMAGE_URL="https://i.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
         PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
           "embeds": [{
             "title": "Renamed Image",
