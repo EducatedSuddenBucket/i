@@ -25,16 +25,17 @@ jobs:
         response=$(curl -s "https://www.random.org/strings/?num=1&len=5&digits=on&loweralpha=on&unique=on&format=plain&rnd=new")
         echo "RANDOM_STRING=${response}" >> $GITHUB_ENV
 
-    - name: Rename image
+    - name: Rename image and remove old file from Git
       run: |
         mv img/image.png img/${{ env.RANDOM_STRING }}.png
+        git rm img/image.png  # Remove the old image from Git tracking
 
     - name: Commit changes
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
         git add img/${{ env.RANDOM_STRING }}.png
-        git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png"
+        git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png and remove old file"
         git push
 
     - name: Checkout gh-pages branch
