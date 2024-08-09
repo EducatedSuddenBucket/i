@@ -25,10 +25,9 @@ jobs:
         response=$(curl -s "https://www.random.org/strings/?num=1&len=5&digits=on&loweralpha=on&unique=on&format=plain&rnd=new")
         echo "RANDOM_STRING=${response}" >> $GITHUB_ENV
 
-    - name: Rename image and delete original
+    - name: Rename image
       run: |
         mv img/image.png img/${{ env.RANDOM_STRING }}.png
-        rm img/image.png  # Delete the original image
 
     - name: Commit changes
       run: |
