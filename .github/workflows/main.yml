@@ -1,4 +1,4 @@
-name: Rename and Deploy Image
+name: Rename and Deploy Images
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write  # Grant write permission to GITHUB_TOKEN
 
 jobs:
-  rename-image:
+  rename-images:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,17 +25,33 @@ jobs:
         response=$(curl -s "https://www.random.org/strings/?num=1&len=5&digits=on&loweralpha=on&unique=on&format=plain&rnd=new")
         echo "RANDOM_STRING=${response}" >> $GITHUB_ENV
 
-    - name: Rename image and remove old file from Git
+    - name: Rename and convert images
       run: |
-        mv img/image.png img/${{ env.RANDOM_STRING }}.png
-        git rm img/image.png  # Remove the old image from Git tracking
+        for file in img/*; do
+          # Get the file extension
+          ext="${file##*.}"
+          
+          # Generate new file name
+          new_name="img/${{ env.RANDOM_STRING }}.png"
+
+          # Convert .jpeg or .jpg to .png and rename other image files
+          if [[ "$ext" == "jpeg" || "$ext" == "jpg" ]]; then
+            convert "$file" "$new_name"  # Requires ImageMagick for conversion
+            git rm "$file"
+          else
+            mv "$file" "$new_name"
+            git rm "$file"
+          fi
+
+          # Add the new file to git
+          git add "$new_name"
+        done
 
     - name: Commit changes
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add img/${{ env.RANDOM_STRING }}.png
-        git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png and remove old file"
+        git commit -m "Renamed and converted images"
         git push
 
     - name: Checkout gh-pages branch
@@ -44,57 +60,65 @@ jobs:
         ref: gh-pages
         path: gh-pages
 
-    - name: Copy renamed image to gh-pages/raw
+    - name: Copy renamed images to gh-pages/raw
       run: |
-        cp img/${{ env.RANDOM_STRING }}.png gh-pages/raw/${{ env.RANDOM_STRING }}.png
+        for file in img/*.png; do
+          cp "$file" gh-pages/raw/
+        done
 
-    - name: Generate HTML file
+    - name: Generate HTML file for each image
       run: |
-        IMAGE_URL="https://i.esb.is-a.dev/raw/${{ env.RANDOM_STRING }}.png"
-        FILE_SIZE=$(du -k "img/${{ env.RANDOM_STRING }}.png" | cut -f1)
-        HTML_CONTENT="<head>
-            <meta charset=\"utf-8\">
-            <title>${{ env.RANDOM_STRING }}.png</title>
-            <meta name=\"viewport\" content=\"minimum-scale=1, initial-scale=1, width=device-width\">
-            <meta property=\"og:title\" content=\"EducatedSuddenBucket\">
-            <meta property=\"og:description\" content=\"I just used ${FILE_SIZE} KB in my PC to show you this.(jk)\">
-            <meta property=\"og:site_name\" content=\"EducatedSuddenBucket\">
-            <meta property=\"theme-color\" content=\"#2068f5\">
-            <meta property=\"og:type\" content=\"image\">
-            <meta property=\"og:image\" itemprop=\"image\" content=\"${IMAGE_URL}\">
-            <meta property=\"og:url\" content=\"${IMAGE_URL}\">
-            <meta property=\"twitter:card\" content=\"summary_large_image\">
-            <meta property=\"twitter:image\" content=\"${IMAGE_URL}\">
-            <meta property=\"twitter:title\" content=\"${{ env.RANDOM_STRING }}.png\">
-            <style>
-              body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-              img { max-width: 100%; height: auto; }
-            </style>
-        </head>
-        <body>
-            <img src=\"${IMAGE_URL}\" alt=\"${{ env.RANDOM_STRING }}\">
-        </body>"
-        echo "$HTML_CONTENT" > gh-pages/${{ env.RANDOM_STRING }}.png.html
+        for file in img/*.png; do
+          filename=$(basename "$file" .png)
+          IMAGE_URL="https://i.esb.is-a.dev/raw/${filename}.png"
+          FILE_SIZE=$(du -k "$file" | cut -f1)
+          HTML_CONTENT="<head>
+              <meta charset=\"utf-8\">
+              <title>${filename}.png</title>
+              <meta name=\"viewport\" content=\"minimum-scale=1, initial-scale=1, width=device-width\">
+              <meta property=\"og:title\" content=\"EducatedSuddenBucket\">
+              <meta property=\"og:description\" content=\"I just used ${FILE_SIZE} KB in my PC to show you this.(jk)\">
+              <meta property=\"og:site_name\" content=\"EducatedSuddenBucket\">
+              <meta property=\"theme-color\" content=\"#2068f5\">
+              <meta property=\"og:type\" content=\"image\">
+              <meta property=\"og:image\" itemprop=\"image\" content=\"${IMAGE_URL}\">
+              <meta property=\"og:url\" content=\"${IMAGE_URL}\">
+              <meta property=\"twitter:card\" content=\"summary_large_image\">
+              <meta property=\"twitter:image\" content=\"${IMAGE_URL}\">
+              <meta property=\"twitter:title\" content=\"${filename}.png\">
+              <style>
+                body { background-color: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+                img { max-width: 100%; height: auto; }
+              </style>
+          </head>
+          <body>
+              <img src=\"${IMAGE_URL}\" alt=\"${filename}\">
+          </body>"
+          echo "$HTML_CONTENT" > gh-pages/${filename}.png.html
+        done
 
     - name: Commit and push to gh-pages
       run: |
         cd gh-pages
-        git add raw/${{ env.RANDOM_STRING }}.png
-        git add ${{ env.RANDOM_STRING }}.png.html
-        git commit -m "Add renamed image and HTML file for ${{ env.RANDOM_STRING }}.png"
+        git add raw/*.png
+        git add *.png.html
+        git commit -m "Add renamed and converted images and HTML files"
         git push
 
     - name: Send Discord webhook
       run: |
-        IMAGE_URL="https://i.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
-        PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
-          "embeds": [{
-            "title": "Renamed Image",
-            "description": $url,
-            "color": $color,
-            "url": $url
-          }]
-        }')
-        curl -H "Content-Type: application/json" \
-             -d "$PAYLOAD" \
-             ${{ secrets.DISCORD_WEBHOOK_URL }}
+        for file in img/*.png; do
+          filename=$(basename "$file" .png)
+          IMAGE_URL="https://i.esb.is-a.dev/${filename}.png"
+          PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
+            "embeds": [{
+              "title": "Renamed Image",
+              "description": $url,
+              "color": $color,
+              "url": $url
+            }]
+          }')
+          curl -H "Content-Type: application/json" \
+               -d "$PAYLOAD" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
+        done
