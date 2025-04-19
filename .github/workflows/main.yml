@@ -57,11 +57,11 @@ jobs:
         git rm -f "$original_file" || echo "Could not git rm the original file (might be new)"
         git add "$new_name"
 
-    - name: Clean old renamed images from img directory
+    - name: Clean all images from img directory except newly renamed one
       run: |
-        # Remove any .png files in img directory except our newly renamed one and test.txt
-        for img in img/*.png; do
-          if [ "$img" != "${{ env.RENAMED_IMAGE }}" ] && [ "$(basename $img)" != "test.txt" ]; then
+        # Remove any image files in img directory except our newly renamed one and test.txt
+        find img -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) | while read img; do
+          if [ "$img" != "${{ env.RENAMED_IMAGE }}" ]; then
             echo "Removing old image: $img"
             rm -f "$img" 
             git rm -f "$img" || echo "Could not git rm $img (might not be tracked)"
