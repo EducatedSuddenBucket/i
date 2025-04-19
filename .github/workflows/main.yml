@@ -25,18 +25,46 @@ jobs:
         response=$(curl -s "https://www.random.org/strings/?num=1&len=5&digits=on&loweralpha=on&unique=on&format=plain&rnd=new")
         echo "RANDOM_STRING=${response}" >> $GITHUB_ENV
 
-    - name: Find and rename images
-      id: rename-images
+    - name: Find latest modified image
+      id: find-latest-image
       run: |
-        # Find all image files in the img directory
-        for img in img/*.{png,jpg,jpeg}; do
-          if [ -f "$img" ]; then
-            # Determine new file name with .png extension
-            new_name="img/${{ env.RANDOM_STRING }}.png"
-            mv "$img" "$new_name"
-            echo "RENAMED_IMAGE=$new_name" >> $GITHUB_ENV
-            # Remove the old image from Git tracking
-            git rm "$img"
+        # Find the most recently modified image file in the img directory (excluding test.txt)
+        latest_image=$(find img -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) -printf "%T@ %p\n" | sort -n | tail -1 | cut -d' ' -f2)
+        
+        if [ -z "$latest_image" ]; then
+          echo "No image files found in img directory"
+          exit 1
+        fi
+        
+        echo "LATEST_IMAGE=$latest_image" >> $GITHUB_ENV
+        echo "Found latest modified image: $latest_image"
+
+    - name: Rename latest image
+      run: |
+        # Create new filename
+        new_name="img/${{ env.RANDOM_STRING }}.png"
+        
+        echo "Renaming ${{ env.LATEST_IMAGE }} to $new_name"
+        
+        # Backup the original filename for git operations
+        original_file="${{ env.LATEST_IMAGE }}"
+        
+        # Rename the file
+        mv "${{ env.LATEST_IMAGE }}" "$new_name"
+        echo "RENAMED_IMAGE=$new_name" >> $GITHUB_ENV
+        
+        # Stage both the removal of old file and addition of new file
+        git rm -f "$original_file" || echo "Could not git rm the original file (might be new)"
+        git add "$new_name"
+
+    - name: Clean old renamed images from img directory
+      run: |
+        # Remove any .png files in img directory except our newly renamed one and test.txt
+        for img in img/*.png; do
+          if [ "$img" != "${{ env.RENAMED_IMAGE }}" ] && [ "$(basename $img)" != "test.txt" ]; then
+            echo "Removing old image: $img"
+            rm -f "$img" 
+            git rm -f "$img" || echo "Could not git rm $img (might not be tracked)"
           fi
         done
 
@@ -44,8 +72,7 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add ${{ env.RENAMED_IMAGE }}
-        git commit -m "Rename images to ${{ env.RANDOM_STRING }}.png and remove old files"
+        git commit -m "Rename image to ${{ env.RANDOM_STRING }}.png and clean old files"
         git push
 
     - name: Checkout gh-pages branch
@@ -56,6 +83,8 @@ jobs:
 
     - name: Copy renamed image to gh-pages/raw
       run: |
+        # Ensure the raw directory exists
+        mkdir -p gh-pages/raw
         cp ${{ env.RENAMED_IMAGE }} gh-pages/raw/${{ env.RANDOM_STRING }}.png
 
     - name: Generate HTML file
@@ -89,12 +118,15 @@ jobs:
     - name: Commit and push to gh-pages
       run: |
         cd gh-pages
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
         git add raw/${{ env.RANDOM_STRING }}.png
         git add ${{ env.RANDOM_STRING }}.png.html
         git commit -m "Add renamed image and HTML file for ${{ env.RANDOM_STRING }}.png"
         git push
 
     - name: Send Discord webhook
+      if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
       run: |
         IMAGE_URL="https://i.esb.is-a.dev/${{ env.RANDOM_STRING }}.png"
         PAYLOAD=$(jq -n --arg url "$IMAGE_URL" --arg name "$IMAGE_URL" --argjson color 3447003 '{
